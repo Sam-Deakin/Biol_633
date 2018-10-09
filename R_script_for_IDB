@@ -1,0 +1,75 @@
+##Right lets tackle isolation by distance
+
+##load the required packages
+
+library("ape")
+library("pegas")
+library("seqinr")
+library("ggplot2")
+library("adegenet")
+
+library(readr)
+
+##### NOW WORKING ON POPS WITH GPS COORDINATES, REMOVED=FR,SP,SO,RR,CD,WM,SM
+
+##imports genpop formated indv genotype
+BHS_indv_genotypes_with_GPS <- read.genepop(file = "adegenet_BHS_individual_genotypes_input_with_GPS.gen",ncode = 2,quiet = TRUE)
+
+#checks indv genotype file is suitable
+is.genind(BHS_indv_genotypes_with_GPS)
+
+##lists properties of the gen indvs
+BHS_indv_genotypes_with_GPS
+
+
+##########add in the pops
+
+##convert indv genotypes to pop ~genotypes 
+BHS_pops <- genind2genpop(BHS_indv_genotypes_with_GPS)
+
+##check pop names
+popNames(BHS_pops)
+
+###check BHS_pops
+BHS_pops
+
+###import pop coordinates
+BHS_pop_coordinates <- read.csv(file ="IBD_genpop_lat_long_NOPOP.csv",header = TRUE, sep = ",")
+
+###set coordinates for genpop file
+BHS_pops@other$latlong<-BHS_pop_coordinates
+
+##################right lets make an IBD for POPS 
+
+##make the geographic distance matrix, note us @other rather than $other (error in the manual)
+BHS_geog_dist <-dist(BHS_pops@other$latlong)
+
+##make the genetic distance matrix
+BHS_pops_gen_dist <-dist.genpop(BHS_pops, method = 2)
+
+##do the mantel test
+BHS_ibd <-mantel.randtest(m1 = BHS_pops_gen_dist, m2 = BHS_geog_dist,nrepet = 10000)
+
+###lets have a gander at it 
+plot(BHS_ibd)
+##not really what we're looking for 
+
+####lets have a go at this
+plot(BHS_geog_dist,BHS_pops_gen_dist)
+##BETER
+#plot(BHS_pops_gen_dist,BHS_geog_dist)
+
+##this looks kinda sketchy, not sure if its right
+#abline(lm(BHS_geog_dist~BHS_pops_gen_dist),col="red")
+abline(lm(BHS_pops_gen_dist~BHS_geog_dist),col="red")
+
+BHS_ibd
+
+#BHS_IBD_regression<-lm(BHS_geog_dist~BHS_pops_gen_dist)
+
+#BHS_IBD_coeff=coefficients(BHS_IBD_regression)
+
+# equation of the line : 
+#eq = paste0("y = ", round(BHS_IBD_coeff[2],1), "*x ", round(BHS_IBD_coeff[1],1))# equation of the line : 
+#plot(BHS_geog_dist,BHS_pops_gen_dist, main=eq)
+#abline(lm(BHS_pops_gen_dist~BHS_geog_dist),col="red")
